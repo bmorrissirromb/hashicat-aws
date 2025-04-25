@@ -9,7 +9,47 @@ terraform {
 
 provider "aws" {
   region  = var.region
+  default_tags {
+      tags = module.tagging_module.tag_map
+  }
 }
+
+# REQUIRED TAGS - Add values to each before deploying your Terraform code.
+locals {
+  project     = "hashicat" # Which platform/project created this infra
+  deployment  = "Terraform" # Mechanism used to deploy the resource (eg. Terraform)
+  environment = "dev" # Environment in which the resource is deployed. One of: dev, preprod, prod
+  repo        = "https://github.com/bmorrissirromb/hashicat-aws" # URL of the repository where the Infrastructure as Code is sourced from.
+  criticality = "dev" # The level of criticality for the application. Informs RPO and RTO. One of: critical, prod-non-critical, internal, dev
+  owner       = "sirromb@amazon.com" # Email address of the owner or owner distribution list.
+
+  # OPTIONAL TAGS - These tags are not required globally but can be added as needed
+  optional_tags = {
+    # expiration-date = "" 
+  }
+}
+
+#######################################################################
+# DON'T MODIFY THIS BLOCK UNLESS YOU REALLY KNOW WHAT YOU'RE DOING
+#######################################################################
+module "tagging_module" {
+  # checkov:skip=CKV_TF_1: commit hashing is superfluous for this case
+  # For exact details on tag validation, see the repo below
+  source  = "app.terraform.io/BlackAndVeatch/tagging-module/aws"
+  version = "1.0.0"
+  # Required tags
+  project     = local.project
+  environment = local.environment
+  deployment  = local.deployment
+  repo        = local.repo
+  criticality = local.criticality
+  owner       = local.owner
+
+  # Optional tags
+  optional_tags = local.optional_tags
+}
+
+#########################################################################
 
 resource "aws_vpc" "hashicat" {
   cidr_block           = var.address_space
